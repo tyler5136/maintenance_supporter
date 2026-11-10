@@ -129,6 +129,9 @@ CONF_MIRROR_TODO_DEFAULT_ENTITIES: Final = "mirror_todo_default_entities"
 # Fork (tyler5136): keep finished rows on the lists, checked off, instead of
 # deleting them (a task backend like Vikunja keeps the history).
 CONF_MIRROR_TODO_KEEP_COMPLETED: Final = "mirror_todo_keep_completed"
+# Fork: native Vikunja sync (helpers/vikunja_sync); the token is NOT a setting.
+CONF_VIKUNJA_URL: Final = "vikunja_url"
+CONF_VIKUNJA_PROJECT_ID: Final = "vikunja_project_id"
 CONF_PANEL_ENABLED: Final = "panel_enabled"
 # v2.10.4 (#69 follow-up): the sidebar panel is the integration's hub — the
 # auto-dashboard's "Open Maintenance panel" button, QR codes, and notifications

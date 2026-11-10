@@ -110,6 +110,7 @@ from .helpers.task_trace import KIND_DONE_WHEN, observe_statuses
 from .helpers.task_trace import record as record_trace
 from .helpers.todo_mirror import TODO_MIRROR_KEY
 from .helpers.trigger_fallback import counter_progress
+from .helpers.vikunja_sync import VIKUNJA_SYNC_KEY
 from .models.maintenance_object import MaintenanceObject
 from .models.maintenance_task import MaintenanceTask
 from .models.shapes import ReadingValue, UsedPart
@@ -538,6 +539,8 @@ class MaintenanceCoordinator(DataUpdateCoordinator[CoordinatorData]):
         # D#183: mirror the due tasks into their external to-do lists (a
         # no-op unless a task names one).
         await self._async_sync_todo_mirror(result[CONF_TASKS])
+        # Fork: keep the Vikunja catalog in step (no-op until configured).
+        await self._async_sync_vikunja(result[CONF_TASKS])
 
         # After the LAST await: trigger flips that landed while this refresh
         # was running (the recorder query of a later task, the notification
@@ -733,6 +736,13 @@ class MaintenanceCoordinator(DataUpdateCoordinator[CoordinatorData]):
         await mirror.async_sync_entry(
             self.entry.entry_id, task_results, store=self._store, object_name=self.maintenance_object.name
         )
+
+    async def _async_sync_vikunja(self, task_results: dict[str, TaskResult]) -> None:
+        """Hand this refresh's results to the Vikunja sync (helpers/vikunja_sync)."""
+        sync = self.hass.data.get(DOMAIN, {}).get(VIKUNJA_SYNC_KEY)
+        if sync is None:
+            return
+        await sync.async_sync_entry(self.entry.entry_id, task_results, store=self._store, obj=self.maintenance_object)
 
     async def _evaluate_trigger_fallback(self, task: MaintenanceTask, task_id: str) -> None:
         """Evaluate trigger state as fallback (main evaluation is event-driven).

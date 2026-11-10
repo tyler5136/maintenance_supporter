@@ -95,6 +95,8 @@ from .helpers.todo_mirror import TODO_MIRROR_KEY, TodoMirror
 from .helpers.todo_mirror import settings_changed as _todo_mirror_settings_changed
 from .helpers.update_state import async_remember_running_version
 from .helpers.user_orphans import async_prune_task_user_orphans, async_sync_admin_panel_orphan_issues
+from .helpers.vikunja_sync import VIKUNJA_SYNC_KEY, VikunjaSync
+from .helpers.vikunja_sync import settings_changed as _vikunja_settings_changed
 from .helpers.workday import async_setup_business_days
 from .listeners import async_register_listeners
 from .models.runtime_data import MaintenanceSupporterConfigEntry, MaintenanceSupporterData
@@ -397,6 +399,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: MaintenanceSupporterConf
             todo_mirror = TodoMirror(hass)
             await todo_mirror.async_setup()
             hass.data[DOMAIN][TODO_MIRROR_KEY] = todo_mirror
+
+        # Fork: native Vikunja sync — same lifecycle as the to-do mirror.
+        if VIKUNJA_SYNC_KEY not in hass.data[DOMAIN]:
+            vikunja_sync = VikunjaSync(hass)
+            await vikunja_sync.async_setup()
+            hass.data[DOMAIN][VIKUNJA_SYNC_KEY] = vikunja_sync
 
         # 2026-10 places: tell a person what is due where they just arrived —
         # same lifecycle as the mirrors (global entry owns it).
@@ -867,6 +875,7 @@ async def _async_global_options_updated(hass: HomeAssistant, entry: ConfigEntry)
     # #231: the to-do mirror's default lists may have changed — it compares
     # and, if so, moves the inheriting tasks' rows.
     _todo_mirror_settings_changed(hass)
+    _vikunja_settings_changed(hass)
     # The low/recovered battery percentages may have changed: the hub counts
     # now, not at its next poll.
     async_dispatcher_send(hass, SIGNAL_BATTERY_FLEET_CHANGED)
@@ -885,6 +894,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: MaintenanceSupporterCon
         todo_mirror = hass.data.get(DOMAIN, {}).pop(TODO_MIRROR_KEY, None)
         if todo_mirror is not None:
             todo_mirror.async_teardown()
+
+        vikunja_sync = hass.data.get(DOMAIN, {}).pop(VIKUNJA_SYNC_KEY, None)
+        if vikunja_sync is not None:
+            vikunja_sync.async_teardown()
 
         place_arrivals = hass.data.get(DOMAIN, {}).pop(PLACES_KEY, None)
         if place_arrivals is not None:
@@ -941,6 +954,14 @@ async def _async_forget_removed_object_tasks(hass: HomeAssistant, entry: ConfigE
                 await mirror.async_forget_task(store, task_id)
             except Exception:  # a list provider error must not block the delete
                 _LOGGER.warning("Could not take the to-do rows of task %s off their lists", task_id, exc_info=True)
+
+    vikunja = hass.data.get(DOMAIN, {}).get(VIKUNJA_SYNC_KEY)
+    if vikunja is not None:
+        for task_id in task_ids:
+            try:
+                await vikunja.async_forget_task(store, task_id)
+            except Exception:  # Vikunja down must not block the delete
+                _LOGGER.warning("Could not close the Vikunja task of task %s", task_id, exc_info=True)
 
     ge = get_global_entry(hass)
     exempt = (ge.options.get(CONF_VACATION_EXEMPT_TASK_IDS) if ge is not None else None) or []

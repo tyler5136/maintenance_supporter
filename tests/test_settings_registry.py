@@ -23,6 +23,7 @@ from custom_components.maintenance_supporter.helpers.settings_registry import (
 _EXPECTED_INT_RANGES = {
     "default_warning_days": (0, 365),  # 0 = no warning window (#145)
     "warning_percent": (0, 90),  # fork: percent-of-interval warning window
+    "vikunja_project_id": (0, 1_000_000_000),  # fork: Vikunja sync target (0 = off)
     "default_consumable_threshold": (1, 90),
     "battery_low_percent": (1, 90),
     "battery_recovered_percent": (20, 100),  # #180 fleet hysteresis
@@ -45,6 +46,7 @@ _EXPECTED_FLOAT_RANGES = {
 }
 _EXPECTED_STR_MAX_LENGTHS = {
     "notify_service": 200,
+    "vikunja_url": 200,  # fork: Vikunja sync target
     "shopping_list_entity": 255,
     "quiet_hours_start": 5,
     "quiet_hours_end": 5,
@@ -82,11 +84,11 @@ def test_allowed_keys_count_and_types() -> None:
     # battery_low_delay_minutes; #231 mirror_todo_default_entities; #233
     # follow-up shared_device_user_ids; 2026-10 advanced_beta_editor_visible;
     # D#248 notification_title_prefix).
-    assert len(ALLOWED_SETTING_KEYS) == 73
+    assert len(ALLOWED_SETTING_KEYS) == 75
     assert all(isinstance(t, type) for t in ALLOWED_SETTING_KEYS.values())
     # No duplicate keys crept into the spec tuple.
     keys = [s.key for s in SETTING_SPECS]
-    assert len(keys) == len(set(keys)) == 73
+    assert len(keys) == len(set(keys)) == 75
 
 
 def test_every_ranged_key_is_declared_with_matching_type() -> None:

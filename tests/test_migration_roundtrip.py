@@ -240,6 +240,8 @@ async def _seed(hass: HomeAssistant, global_entry: MockConfigEntry) -> dict[str,
             "default_warning_days": 9,
             "warning_percent": 20,
             "mirror_todo_keep_completed": True,
+            "vikunja_url": "https://tasks.example",
+            "vikunja_project_id": 23,
             "budget_monthly": 42.0,
         }
     )

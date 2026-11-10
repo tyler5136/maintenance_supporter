@@ -12,6 +12,7 @@
 export const SETTING_INT_RANGES: Record<string, [number, number]> = {
   default_warning_days: [0, 365],
   warning_percent: [0, 90],
+  vikunja_project_id: [0, 1000000000],
   default_consumable_threshold: [1, 90],
   battery_low_percent: [1, 90],
   battery_recovered_percent: [20, 100],

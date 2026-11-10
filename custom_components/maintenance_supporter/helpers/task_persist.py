@@ -564,6 +564,9 @@ async def async_delete_task(
         mirror = hass.data.get(DOMAIN, {}).get("todo_mirror")
         if mirror is not None and hasattr(mirror, "async_forget_task"):
             await mirror.async_forget_task(store, task_id)
+        vikunja = hass.data.get(DOMAIN, {}).get("vikunja_sync")
+        if vikunja is not None:
+            await vikunja.async_forget_task(store, task_id)
         if removed_state is not None:
             removed_state.update(deepcopy(store.get_task_state(task_id)))
         store.remove_task(task_id)

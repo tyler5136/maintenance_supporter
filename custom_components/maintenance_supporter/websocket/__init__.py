@@ -814,6 +814,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
         ws_vacation_state,
         ws_vacation_update,
     )
+    from .vikunja import ws_vikunja_set_token, ws_vikunja_status, ws_vikunja_sync_now
 
     websocket_api.async_register_command(hass, ws_get_objects)
     websocket_api.async_register_command(hass, ws_get_object)
@@ -907,6 +908,9 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_batch_generate_qr)
     websocket_api.async_register_command(hass, ws_get_settings)
     websocket_api.async_register_command(hass, ws_update_global_settings)
+    websocket_api.async_register_command(hass, ws_vikunja_set_token)
+    websocket_api.async_register_command(hass, ws_vikunja_status)
+    websocket_api.async_register_command(hass, ws_vikunja_sync_now)
     websocket_api.async_register_command(hass, ws_test_notification)
     websocket_api.async_register_command(hass, ws_notify_user_targets)
     websocket_api.async_register_command(hass, ws_list_users)

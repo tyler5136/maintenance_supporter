@@ -53,6 +53,10 @@ _EXPECTED_TIERS: dict[str, str] = {
     "maintenance_supporter/global/test_notification": "admin",
     "maintenance_supporter/notify/user_targets": "admin",
     "maintenance_supporter/global/update": "admin",
+    # Fork: Vikunja sync (token write / status / manual pass).
+    "maintenance_supporter/vikunja/set_token": "admin",
+    "maintenance_supporter/vikunja/status": "admin",
+    "maintenance_supporter/vikunja/sync_now": "admin",
     "maintenance_supporter/json/import": "admin",
     # #170 follow-up: renumbers printed references — admin, never delegated.
     "maintenance_supporter/reference_numbers/compact": "admin",

@@ -91,6 +91,8 @@ from ..const import (
     CONF_SHARED_DEVICE_USER_IDS,
     CONF_SHOPPING_LIST_ENTITY,
     CONF_SNOOZE_DURATION_HOURS,
+    CONF_VIKUNJA_PROJECT_ID,
+    CONF_VIKUNJA_URL,
     CONF_WARNING_PERCENT,
     CONF_WARRANTY_REMINDER_DAYS,
     CONF_WARRANTY_REMINDER_ENABLED,
@@ -244,6 +246,9 @@ def _build_full_settings(
             # Fork (tyler5136): no panel control yet — set via global/update.
             "mirror_todo_keep_completed": bool(_opt(options, CONF_MIRROR_TODO_KEEP_COMPLETED)),
             "warning_percent": _opt(options, CONF_WARNING_PERCENT),
+            # Fork: Vikunja target (the token is write-only — see vikunja/*).
+            "vikunja_url": _opt(options, CONF_VIKUNJA_URL),
+            "vikunja_project_id": _opt(options, CONF_VIKUNJA_PROJECT_ID),
             # Shared pickable-target list so the panel picker can't drift from
             # the options-flow dropdown (both go through build_notify_targets).
             "notify_targets": notify_targets or [],

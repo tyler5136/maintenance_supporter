@@ -720,6 +720,8 @@ _SETTING_SAMPLES: dict[str, Any] = {
     "mirror_todo_default_entities": ["todo.family", "todo.kids"],
     "mirror_todo_keep_completed": True,
     "warning_percent": 20,
+    "vikunja_url": "https://tasks.example",
+    "vikunja_project_id": 23,
     "shared_device_user_ids": ["kitchen-tablet-user"],
     "panel_enabled": True,
     # Already trimmed + under the 50-char cap, so it round-trips unchanged.
@@ -834,6 +836,8 @@ async def test_every_allowlisted_setting_round_trips(hass: HomeAssistant, global
         "mirror_todo_default_entities": settings["general"]["mirror_todo_default_entities"],
         "mirror_todo_keep_completed": settings["general"]["mirror_todo_keep_completed"],
         "warning_percent": settings["general"]["warning_percent"],
+        "vikunja_url": settings["general"]["vikunja_url"],
+        "vikunja_project_id": settings["general"]["vikunja_project_id"],
         "shared_device_user_ids": settings["shared_device_user_ids"],
         "panel_enabled": settings["general"]["panel_enabled"],
         "panel_title": settings["general"]["panel_title"],

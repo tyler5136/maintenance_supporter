@@ -100,6 +100,8 @@ from ..const import (
     CONF_SHARED_DEVICE_USER_IDS,
     CONF_SHOPPING_LIST_ENTITY,
     CONF_SNOOZE_DURATION_HOURS,
+    CONF_VIKUNJA_PROJECT_ID,
+    CONF_VIKUNJA_URL,
     CONF_WARNING_PERCENT,
     CONF_WARRANTY_REMINDER_DAYS,
     CONF_WARRANTY_REMINDER_ENABLED,
@@ -139,7 +141,9 @@ class SettingSpec:
 
 # Fork (tyler5136): settings set through global/update only (no panel/options-flow
 # control yet); the parity tests exempt exactly these.
-FORK_SETTING_KEYS: frozenset[str] = frozenset({CONF_WARNING_PERCENT, CONF_MIRROR_TODO_KEEP_COMPLETED})
+FORK_SETTING_KEYS: frozenset[str] = frozenset(
+    {CONF_WARNING_PERCENT, CONF_MIRROR_TODO_KEEP_COMPLETED, CONF_VIKUNJA_URL, CONF_VIKUNJA_PROJECT_ID}
+)
 
 # The complete set of keys accepted by global/update. Order groups related
 # settings; it has no functional meaning.
@@ -177,6 +181,9 @@ SETTING_SPECS: tuple[SettingSpec, ...] = (
     SettingSpec(CONF_MIRROR_TODO_DEFAULT_ENTITIES, list, []),
     # Fork: keep finished mirror rows (checked off) instead of deleting them.
     SettingSpec(CONF_MIRROR_TODO_KEEP_COMPLETED, bool, False),
+    # Fork: native Vikunja sync target ("" / 0 = off; token stored separately).
+    SettingSpec(CONF_VIKUNJA_URL, str, "", max_len=200),
+    SettingSpec(CONF_VIKUNJA_PROJECT_ID, int, 0, int_range=(0, 1_000_000_000)),
     # #145: enum-validated by a bespoke rule (ROW_ACTION_STYLES); the notice
     # flag is only ever cleared by the panel banner.
     SettingSpec(CONF_ROW_ACTION_STYLE, str, DEFAULT_ROW_ACTION_STYLE, max_len=32),

@@ -521,7 +521,7 @@ def test_a_store_is_read_through_store_of() -> None:
     """``getattr(rd, "store", None)`` was spelled out at some thirty sites
     (DRY audit 2026-10-12); helpers/aggregate.store_of / get_store are the
     one spelling. The three left also read the entry's coordinator."""
-    allowed = {"helpers/aggregate.py", "helpers/reference_numbers.py", "helpers/todo_mirror.py", "shopping_sync.py"}
+    allowed = {"helpers/aggregate.py", "helpers/reference_numbers.py", "helpers/todo_mirror.py", "helpers/vikunja_sync.py", "shopping_sync.py"}
     offenders = [
         p.relative_to(COMPONENT).as_posix()
         for p in COMPONENT.rglob("*.py")
