@@ -74,7 +74,10 @@ _EDITED_BY_STEP = {
 }
 # Not a preference: the one-time "new look" banner flag (#145), cleared by the
 # panel banner itself.
-_NOT_A_SETTING = {CONF_ROW_ACTION_NOTICE}
+# Fork settings have no UI control yet (set via global/update).
+from custom_components.maintenance_supporter.helpers.settings_registry import FORK_SETTING_KEYS
+
+_NOT_A_SETTING = {CONF_ROW_ACTION_NOTICE} | set(FORK_SETTING_KEYS)
 
 
 async def _open_step(hass: HomeAssistant, entry_id: str, step: str) -> dict[str, Any]:

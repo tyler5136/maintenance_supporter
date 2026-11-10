@@ -22,6 +22,7 @@ from custom_components.maintenance_supporter.helpers.settings_registry import (
 # baseline; changing a bound is a deliberate act that must update this test too.
 _EXPECTED_INT_RANGES = {
     "default_warning_days": (0, 365),  # 0 = no warning window (#145)
+    "warning_percent": (0, 90),  # fork: percent-of-interval warning window
     "default_consumable_threshold": (1, 90),
     "battery_low_percent": (1, 90),
     "battery_recovered_percent": (20, 100),  # #180 fleet hysteresis
@@ -81,11 +82,11 @@ def test_allowed_keys_count_and_types() -> None:
     # battery_low_delay_minutes; #231 mirror_todo_default_entities; #233
     # follow-up shared_device_user_ids; 2026-10 advanced_beta_editor_visible;
     # D#248 notification_title_prefix).
-    assert len(ALLOWED_SETTING_KEYS) == 71
+    assert len(ALLOWED_SETTING_KEYS) == 73
     assert all(isinstance(t, type) for t in ALLOWED_SETTING_KEYS.values())
     # No duplicate keys crept into the spec tuple.
     keys = [s.key for s in SETTING_SPECS]
-    assert len(keys) == len(set(keys)) == 71
+    assert len(keys) == len(set(keys)) == 73
 
 
 def test_every_ranged_key_is_declared_with_matching_type() -> None:

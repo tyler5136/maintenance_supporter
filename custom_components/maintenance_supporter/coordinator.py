@@ -385,6 +385,11 @@ class MaintenanceCoordinator(DataUpdateCoordinator[CoordinatorData]):
     def tasks(self) -> dict[str, MaintenanceTask]:
         """Return all tasks, merging static config with Store dynamic state."""
         tasks_data = self._store.merge_all_tasks(self.entry.data.get(CONF_TASKS, {}))
+        # Fork: refresh the global percent-of-interval warning window first.
+        from .helpers.global_options import get_warning_percent
+        from .models.maintenance_task import set_global_warning_percent
+
+        set_global_warning_percent(get_warning_percent(self.hass))
         return {task_id: MaintenanceTask.from_dict(task_data) for task_id, task_data in tasks_data.items()}
 
     async def _async_update_data(self) -> CoordinatorData:

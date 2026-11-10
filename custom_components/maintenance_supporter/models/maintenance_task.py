@@ -42,6 +42,22 @@ def _planned_day_of(raw: Any) -> int | None:
     return raw if isinstance(raw, int) and not isinstance(raw, bool) and 1 <= raw <= 31 else None
 
 
+# Fork (tyler5136): the global "warning percent" setting, pushed in by the
+# coordinator on every refresh so every MaintenanceTask (coordinator, calendar,
+# notifications, repairs) uses the same window without threading hass through.
+_GLOBAL_WARNING_PERCENT: list[int] = [0]
+
+
+def set_global_warning_percent(value: int) -> None:
+    """Set the process-wide percent-of-interval warning window (0 = off)."""
+    _GLOBAL_WARNING_PERCENT[0] = value if isinstance(value, int) and 0 <= value <= 90 else 0
+
+
+def global_warning_percent() -> int:
+    """The current process-wide percent-of-interval warning window."""
+    return _GLOBAL_WARNING_PERCENT[0]
+
+
 @dataclass
 class MaintenanceTask:
     """Represents a specific maintenance task belonging to an object.
@@ -269,11 +285,16 @@ class MaintenanceTask:
         return is_past_schedule_time(self.schedule_time)
 
     @property
+    def warning_percent(self) -> int:
+        """Fork: the global percent-of-interval warning window (0 = off)."""
+        return _GLOBAL_WARNING_PERCENT[0]
+
+    @property
     def effective_warning_days(self) -> int:
         """The warning window capped at one interval in real days (#58) —
         what the status ladder compares ``days_until_due`` against; published
         to the coordinator payload for the dict twin (helpers.status)."""
-        return effective_warning_days(self.warning_days, self._schedule().span_days())
+        return effective_warning_days(self.warning_days, self._schedule().span_days(), self.warning_percent)
 
     @property
     def archived(self) -> bool:
@@ -365,9 +386,7 @@ class MaintenanceTask:
     def average_duration(self) -> float | None:
         """Average duration of completed maintenance in minutes."""
         durations = [
-            minutes
-            for entry in completed_entries(self.history)
-            if (minutes := finite_amount(entry.get("duration"))) is not None
+            minutes for entry in completed_entries(self.history) if (minutes := finite_amount(entry.get("duration"))) is not None
         ]
         if not durations:
             return None
@@ -798,7 +817,9 @@ class MaintenanceTask:
             labels=data.get("labels", []),
             mirror_todo_entities=list(data.get("mirror_todo_entities") or []),
             mirror_todo_use_default=data.get("mirror_todo_use_default") is not False,
-            complete_when=cast("CompleteWhen", dict(data["complete_when"])) if isinstance(data.get("complete_when"), dict) else None,
+            complete_when=cast("CompleteWhen", dict(data["complete_when"]))
+            if isinstance(data.get("complete_when"), dict)
+            else None,
             archived_at=data.get("archived_at"),
             archived_reason=data.get("archived_reason"),
             paused_at=data.get("paused_at"),

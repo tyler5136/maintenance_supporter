@@ -355,7 +355,7 @@ def compute_preview(
             nd = task_next_due(task, today)
             if nd is None:
                 continue
-            warning = effective_warning_days(_task_warning_days(t), task._schedule().span_days())
+            warning = effective_warning_days(_task_warning_days(t), task._schedule().span_days(), task.warning_percent)
             events = _events_from_next_due(nd, warning, today, window_start, window_end)
             kind = schedule_type
             confidence = "deterministic"

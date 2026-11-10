@@ -15,6 +15,7 @@ twin cannot derive itself (``warning_days_effective``) alongside
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 from homeassistant.util import dt as dt_util
@@ -26,14 +27,20 @@ if TYPE_CHECKING:
     from ..models.task_result import TaskResult
 
 
-def effective_warning_days(warning_days: int, span_days: int | None) -> int:
+def effective_warning_days(warning_days: int, span_days: int | None, percent: int = 0) -> int:
     """The warning window, capped below one interval measured in real days
     (issue #58: a 6-*month* task must not collapse a 14-day warning to
     ``min(14, 6)``). The cap is ``span - 1``: a weekly task with the default
     7-day warning was "due soon" from the day it was completed — for its
     whole cycle, with a due-soon push right after the completion (bug audit
     2026-09-26). ``span_days`` ``None``/0 = no cap (manual, one-off)."""
-    return min(warning_days, max(span_days - 1, 0)) if span_days else warning_days
+    if not span_days:
+        return warning_days
+    if percent and percent > 0:
+        # Fork (tyler5136): percent-of-interval warning window replaces the
+        # fixed day count — 20 % of a 30-day task warns 6 days out.
+        warning_days = max(math.ceil(span_days * percent / 100), 1)
+    return min(warning_days, max(span_days - 1, 0))
 
 
 def is_past_schedule_time(schedule_time: str | None) -> bool:

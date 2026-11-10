@@ -67,6 +67,7 @@ from ..const import (
     CONF_MAX_NOTIFICATIONS_PER_DAY,
     CONF_MEMBER_DISPLAY,
     CONF_MIRROR_TODO_DEFAULT_ENTITIES,
+    CONF_MIRROR_TODO_KEEP_COMPLETED,
     CONF_NOTIFICATION_BUNDLE_THRESHOLD,
     CONF_NOTIFICATION_BUNDLING_ENABLED,
     CONF_NOTIFICATION_TITLE_PREFIX,
@@ -99,6 +100,7 @@ from ..const import (
     CONF_SHARED_DEVICE_USER_IDS,
     CONF_SHOPPING_LIST_ENTITY,
     CONF_SNOOZE_DURATION_HOURS,
+    CONF_WARNING_PERCENT,
     CONF_WARRANTY_REMINDER_DAYS,
     CONF_WARRANTY_REMINDER_ENABLED,
     CONF_WEEKLY_DIGEST_ENABLED,
@@ -116,6 +118,7 @@ from ..const import (
     DEFAULT_ROW_ACTION_STYLE,
     DEFAULT_SNOOZE_DURATION_HOURS,
     DEFAULT_WARNING_DAYS,
+    DEFAULT_WARNING_PERCENT,
     DEFAULT_WARRANTY_REMINDER_DAYS,
     MAX_NOTIFY_EXTRA_DATA_LENGTH,
     MAX_PART_SEARCH_URL_TEMPLATE_LENGTH,
@@ -134,6 +137,10 @@ class SettingSpec:
     max_len: int | None = None  # string length cap
 
 
+# Fork (tyler5136): settings set through global/update only (no panel/options-flow
+# control yet); the parity tests exempt exactly these.
+FORK_SETTING_KEYS: frozenset[str] = frozenset({CONF_WARNING_PERCENT, CONF_MIRROR_TODO_KEEP_COMPLETED})
+
 # The complete set of keys accepted by global/update. Order groups related
 # settings; it has no functional meaning.
 SETTING_SPECS: tuple[SettingSpec, ...] = (
@@ -141,6 +148,8 @@ SETTING_SPECS: tuple[SettingSpec, ...] = (
     # 0 = no warning window: new tasks turn due_soon on the due date itself
     # (the per-task range already allowed 0 — #145).
     SettingSpec(CONF_DEFAULT_WARNING_DAYS, int, DEFAULT_WARNING_DAYS, int_range=(0, 365)),
+    # Fork: percent-of-interval warning window (0 = off).
+    SettingSpec(CONF_WARNING_PERCENT, int, DEFAULT_WARNING_PERCENT, int_range=(0, 90)),
     # #146: household "low" floors (percent) for discovery and the battery fleet.
     SettingSpec(CONF_DEFAULT_CONSUMABLE_THRESHOLD, int, DEFAULT_CONSUMABLE_THRESHOLD, int_range=(1, 90)),
     SettingSpec(CONF_BATTERY_LOW_PERCENT, int, DEFAULT_BATTERY_LOW_PERCENT, int_range=(1, 90)),
@@ -166,6 +175,8 @@ SETTING_SPECS: tuple[SettingSpec, ...] = (
     # #231: the to-do mirror's default lists ([] = off); shape-sanitised and
     # our own to-do platform refused by bespoke rules in dashboard.py.
     SettingSpec(CONF_MIRROR_TODO_DEFAULT_ENTITIES, list, []),
+    # Fork: keep finished mirror rows (checked off) instead of deleting them.
+    SettingSpec(CONF_MIRROR_TODO_KEEP_COMPLETED, bool, False),
     # #145: enum-validated by a bespoke rule (ROW_ACTION_STYLES); the notice
     # flag is only ever cleared by the panel banner.
     SettingSpec(CONF_ROW_ACTION_STYLE, str, DEFAULT_ROW_ACTION_STYLE, max_len=32),

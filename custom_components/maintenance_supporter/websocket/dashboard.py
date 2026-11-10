@@ -58,6 +58,7 @@ from ..const import (
     CONF_MAX_NOTIFICATIONS_PER_DAY,
     CONF_MEMBER_DISPLAY,
     CONF_MIRROR_TODO_DEFAULT_ENTITIES,
+    CONF_MIRROR_TODO_KEEP_COMPLETED,
     CONF_NOTIFICATION_BUNDLE_THRESHOLD,
     CONF_NOTIFICATION_BUNDLING_ENABLED,
     CONF_NOTIFICATION_TITLE_PREFIX,
@@ -90,6 +91,7 @@ from ..const import (
     CONF_SHARED_DEVICE_USER_IDS,
     CONF_SHOPPING_LIST_ENTITY,
     CONF_SNOOZE_DURATION_HOURS,
+    CONF_WARNING_PERCENT,
     CONF_WARRANTY_REMINDER_DAYS,
     CONF_WARRANTY_REMINDER_ENABLED,
     CONF_WEEKLY_DIGEST_ENABLED,
@@ -239,6 +241,9 @@ def _build_full_settings(
             "shopping_list_entity": _opt(options, CONF_SHOPPING_LIST_ENTITY),
             # #231: the to-do mirror's default lists ([] = off).
             "mirror_todo_default_entities": list(_opt(options, CONF_MIRROR_TODO_DEFAULT_ENTITIES) or []),
+            # Fork (tyler5136): no panel control yet — set via global/update.
+            "mirror_todo_keep_completed": bool(_opt(options, CONF_MIRROR_TODO_KEEP_COMPLETED)),
+            "warning_percent": _opt(options, CONF_WARNING_PERCENT),
             # Shared pickable-target list so the panel picker can't drift from
             # the options-flow dropdown (both go through build_notify_targets).
             "notify_targets": notify_targets or [],

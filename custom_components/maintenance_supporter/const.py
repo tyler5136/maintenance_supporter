@@ -114,6 +114,10 @@ SOUTHERN_SEASONS: dict[str, list[int]] = {
 
 # --- Config Keys: Global ---
 CONF_DEFAULT_WARNING_DAYS: Final = "default_warning_days"
+# Fork (tyler5136): warn when this percent of a task's interval is left
+# (0 = off, use each task's warning_days). E.g. 20 = "due soon" at 80% elapsed.
+CONF_WARNING_PERCENT: Final = "warning_percent"
+DEFAULT_WARNING_PERCENT: Final = 0
 CONF_NOTIFICATIONS_ENABLED: Final = "notifications_enabled"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
 # v2.67: mirror auto "buy" tasks into a user-picked HA to-do list (todo.*).
@@ -122,6 +126,9 @@ CONF_SHOPPING_LIST_ENTITY: Final = "shopping_list_entity"
 # #231: the to-do lists every task without its own mirror lists is mirrored
 # into (helpers/todo_mirror). Empty = off. Instance-bound like the shopping list.
 CONF_MIRROR_TODO_DEFAULT_ENTITIES: Final = "mirror_todo_default_entities"
+# Fork (tyler5136): keep finished rows on the lists, checked off, instead of
+# deleting them (a task backend like Vikunja keeps the history).
+CONF_MIRROR_TODO_KEEP_COMPLETED: Final = "mirror_todo_keep_completed"
 CONF_PANEL_ENABLED: Final = "panel_enabled"
 # v2.10.4 (#69 follow-up): the sidebar panel is the integration's hub — the
 # auto-dashboard's "Open Maintenance panel" button, QR codes, and notifications

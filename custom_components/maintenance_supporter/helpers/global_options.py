@@ -24,6 +24,7 @@ from ..const import (
     CONF_DEFAULT_WARNING_DAYS,
     CONF_GROUPS,
     CONF_PANEL_TITLE,
+    CONF_WARNING_PERCENT,
     DEFAULT_BATTERY_LOW_PERCENT,
     DEFAULT_CONSUMABLE_THRESHOLD,
     DEFAULT_WARNING_DAYS,
@@ -81,6 +82,15 @@ def is_schedule_time_enabled(hass: HomeAssistant) -> bool:
     inline by the coordinator, calendar, and sensor before living here.
     """
     return bool(global_option(hass, CONF_ADVANCED_SCHEDULE_TIME))
+
+
+def get_warning_percent(hass: HomeAssistant) -> int:
+    """Fork: the global percent-of-interval warning window (0 = off)."""
+    try:
+        value = int(global_option(hass, CONF_WARNING_PERCENT) or 0)
+    except (TypeError, ValueError):
+        return 0
+    return value if 0 <= value <= 90 else 0
 
 
 def get_default_warning_days(hass: HomeAssistant) -> int:

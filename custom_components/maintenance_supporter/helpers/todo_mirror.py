@@ -50,7 +50,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import date
+from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.todo import TodoListEntityFeature
@@ -58,10 +58,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     COMPLETION_PROVENANCE_NOTES,
     CONF_MIRROR_TODO_DEFAULT_ENTITIES,
+    CONF_MIRROR_TODO_KEEP_COMPLETED,
     CONF_TASKS,
     DOMAIN,
     GLOBAL_UNIQUE_ID,
@@ -87,6 +89,21 @@ MIRROR_FIELD = "mirror_todo_entities"
 MIRROR_USE_DEFAULT_FIELD = "mirror_todo_use_default"
 # A list must take a due date on new rows AND updates for the row to carry one.
 _DUE_DATE_FEATURES = TodoListEntityFeature.SET_DUE_DATE_ON_ITEM | TodoListEntityFeature.UPDATE_TODO_ITEM
+# Fork (tyler5136): lists that only take a date+time (e.g. Vikunja) get the due
+# date at this local time instead of no date at all.
+_DUE_DATETIME_FEATURES = TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM | TodoListEntityFeature.UPDATE_TODO_ITEM
+DUE_DATETIME_HOUR = 9
+
+
+def due_fields(due: date | None, kind: str | None) -> dict[str, Any]:
+    """The todo service fields carrying ``due`` for a list of this kind."""
+    if due is None or kind is None:
+        return {}
+    if kind == "datetime":
+        return {"due_datetime": datetime.combine(due, time(DUE_DATETIME_HOUR, 0), tzinfo=dt_util.get_default_time_zone())}
+    return {"due_date": due}
+
+
 # Store task-state key holding {list_entity: {"summary": str, "uid": str | None}}.
 MIRROR_STATE_KEY = "todo_mirror"
 _DEBOUNCE_SECONDS = 2.0
@@ -122,12 +139,13 @@ async def async_todo_get_items(hass: HomeAssistant, entity: str) -> list[dict[st
     return [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
 
 
-async def async_todo_add_item(hass: HomeAssistant, entity: str, summary: str, *, due: date | None = None) -> bool:
+async def async_todo_add_item(
+    hass: HomeAssistant, entity: str, summary: str, *, due: date | None = None, due_kind: str | None = "date"
+) -> bool:
     """Add a row (with a due date, for a list that takes one); False when the
     call failed (``add_item`` returns no uid — the callers re-list to claim it)."""
     data: dict[str, Any] = {"entity_id": entity, "item": summary}
-    if due is not None:
-        data["due_date"] = due
+    data.update(due_fields(due, due_kind))
     try:
         await hass.services.async_call("todo", "add_item", data, blocking=True)
     except Exception:  # provider errors are retried on the next trigger
@@ -172,14 +190,20 @@ def mirror_todo_error(hass: HomeAssistant, entity_ids: list[str]) -> str | None:
     self-heals when they appear).
     """
     own = own_lists(hass, entity_ids)
-    return f"{own[0]} is a Maintenance Supporter list — a task cannot be mirrored into its own integration's list" if own else None
+    return (
+        f"{own[0]} is a Maintenance Supporter list — a task cannot be mirrored into its own integration's list" if own else None
+    )
 
 
 def own_lists(hass: HomeAssistant, entity_ids: Iterable[Any]) -> list[str]:
     """Which of ``entity_ids`` are Maintenance Supporter's own to-do lists:
     the ones :func:`mirror_todo_error` refuses and an import drops."""
     registry = er.async_get(hass)
-    return [eid for eid in entity_ids if isinstance(eid, str) and (reg := registry.async_get(eid)) is not None and reg.platform == DOMAIN]
+    return [
+        eid
+        for eid in entity_ids
+        if isinstance(eid, str) and (reg := registry.async_get(eid)) is not None and reg.platform == DOMAIN
+    ]
 
 
 def default_lists(hass: HomeAssistant) -> list[str]:
@@ -375,7 +399,10 @@ class TodoMirror:
             for eid, rec in list(record.items()):
                 if eid in wanted and rec.get("summary") == summary:
                     continue
-                await self._remove_item(eid, rec)
+                if not wanted:
+                    await self._retire_item(eid, rec)  # task left the due window
+                else:
+                    await self._remove_item(eid, rec)
                 record.pop(eid)
                 changed = True
             # Rows still missing on a wanted list; the kept ones follow the
@@ -383,7 +410,8 @@ class TodoMirror:
             for eid in wanted:
                 if not self._list_ready(eid):
                     continue
-                takes_due = self._takes_due_date(eid)
+                due_kind = self._due_kind(eid)
+                takes_due = due_kind is not None
                 row_due = due if takes_due else None
                 sent = row_due.isoformat() if row_due is not None else None
                 rec = record.get(eid)
@@ -391,12 +419,12 @@ class TodoMirror:
                     # A record from before the date (no "due") reads None: a
                     # list that takes a date gets it once, the others nothing.
                     if rec.get("due") != sent and (
-                        not takes_due or await async_todo_update_item(self._hass, eid, rec, {"due_date": row_due})
+                        not takes_due or await async_todo_update_item(self._hass, eid, rec, due_fields(row_due, due_kind))
                     ):
                         record[eid] = {**rec, "due": sent}
                         changed = True
                     continue
-                uid = await self._add_item(eid, summary, row_due)
+                uid = await self._add_item(eid, summary, row_due, due_kind)
                 if uid is False:
                     continue  # service failed — retried on the next refresh
                 record[eid] = {"summary": summary, "uid": uid, "due": sent}
@@ -486,7 +514,9 @@ class TodoMirror:
                     store.async_delay_save()
                     await self._complete(ce, coordinator, task_id, checked_on)
                     for eid, rec in record.items():
-                        await self._remove_item(eid, rec)
+                        if eid == checked_on and self._keep_completed():
+                            continue  # already checked off there — keep it as history
+                        await self._retire_item(eid, rec)
                     cache.clear()
                 elif gone:
                     # Hand-deleted rows: forget them so the reconcile below
@@ -499,9 +529,7 @@ class TodoMirror:
             # appeared, rows deleted by hand, nothing after a completion).
             results = task_results(coordinator)
             if results:
-                await self.async_sync_entry(
-                    ce.entry_id, results, store=store, object_name=coordinator.maintenance_object.name
-                )
+                await self.async_sync_entry(ce.entry_id, results, store=store, object_name=coordinator.maintenance_object.name)
 
     async def _complete(self, ce: ConfigEntry, coordinator: MaintenanceCoordinator, task_id: str, list_entity: str) -> None:
         task_name = (ce.data.get(CONF_TASKS) or {}).get(task_id, {}).get("name", task_id)
@@ -526,9 +554,34 @@ class TodoMirror:
 
     def _takes_due_date(self, entity: str) -> bool:
         """The list takes a due date on its rows and lets us change it."""
+        return self._due_kind(entity) is not None
+
+    def _due_kind(self, entity: str) -> str | None:
+        """ "date" / "datetime" for a list that takes (and updates) a due date
+        on its rows, None for one that takes none. Date wins when both."""
         state = self._hass.states.get(entity)
         features = state.attributes.get("supported_features") if state is not None else None
-        return isinstance(features, int) and features & _DUE_DATE_FEATURES == _DUE_DATE_FEATURES
+        if not isinstance(features, int):
+            return None
+        if features & _DUE_DATE_FEATURES == _DUE_DATE_FEATURES:
+            return "date"
+        if features & _DUE_DATETIME_FEATURES == _DUE_DATETIME_FEATURES:
+            return "datetime"
+        return None
+
+    def _keep_completed(self) -> bool:
+        """Fork: finished rows stay on the lists, checked off."""
+        return bool(global_option(self._hass, CONF_MIRROR_TODO_KEEP_COMPLETED))
+
+    async def _retire_item(self, entity: str, rec: dict[str, Any]) -> None:
+        """Take a finished row off the open list: check it off (keep-completed
+        mode) or delete it (upstream default)."""
+        if self._keep_completed():
+            if self._hass.states.get(entity) is None:
+                return
+            await async_todo_update_item(self._hass, entity, rec, {"status": "completed"})
+        else:
+            await self._remove_item(entity, rec)
 
     def _list_ready(self, entity: str) -> bool:
         """The list exists, is available, is not ours, and todo services are up."""
@@ -550,11 +603,13 @@ class TodoMirror:
     async def _get_items(self, entity: str) -> list[dict[str, Any]] | None:
         return await async_todo_get_items(self._hass, entity)
 
-    async def _add_item(self, entity: str, summary: str, due: date | None = None) -> str | bool | None:
+    async def _add_item(
+        self, entity: str, summary: str, due: date | None = None, due_kind: str | None = "date"
+    ) -> str | bool | None:
         """Add a row; returns its uid, None when the provider hid it, False on failure."""
         before = await self._get_items(entity)
         known = {i.get("uid") for i in before or [] if i.get("uid")}
-        if not await async_todo_add_item(self._hass, entity, summary, due=due):
+        if not await async_todo_add_item(self._hass, entity, summary, due=due, due_kind=due_kind):
             return False
         # add_item returns nothing — re-list and claim the new uid: by summary
         # first, then the single unclaimed leftover (a provider that

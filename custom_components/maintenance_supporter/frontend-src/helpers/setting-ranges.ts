@@ -11,6 +11,7 @@
  *  budget_alert_threshold against a backend of 1000 / 10). */
 export const SETTING_INT_RANGES: Record<string, [number, number]> = {
   default_warning_days: [0, 365],
+  warning_percent: [0, 90],
   default_consumable_threshold: [1, 90],
   battery_low_percent: [1, 90],
   battery_recovered_percent: [20, 100],

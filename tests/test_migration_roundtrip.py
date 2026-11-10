@@ -238,6 +238,8 @@ async def _seed(hass: HomeAssistant, global_entry: MockConfigEntry) -> dict[str,
             ],
             CONF_VACATION_EXEMPT_TASK_IDS: ["kitchen_task"],
             "default_warning_days": 9,
+            "warning_percent": 20,
+            "mirror_todo_keep_completed": True,
             "budget_monthly": 42.0,
         }
     )
